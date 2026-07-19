@@ -224,3 +224,28 @@ func (r *OrderRepository) Create(ctx context.Context, req domain.CreateOrderRequ
 
 	return order, nil
 }
+
+// ConfirmOrder transitions an order from PENDING to CONFIRMED.
+//
+// TODO(candidate): implement this method.
+//
+// Requirements:
+//   - Run a single conditional UPDATE:
+//     UPDATE orders SET status = 'CONFIRMED', updated_at = now()
+//     WHERE id = $1 AND status = 'PENDING'
+//   - Do NOT check rows-affected and turn "0 rows" into an error. Zero rows
+//     just means the order was already confirmed (or is in some other
+//     state) — that's exactly the idempotency this method exists to
+//     provide, not a failure.
+//   - Return any real error from the UPDATE itself (bad connection,
+//     constraint violation, etc.) unwrapped or wrapped, your call.
+func (r *OrderRepository) ConfirmOrder(ctx context.Context, orderID string) error {
+	updateQuery := `UPDATE orders SET status = 'CONFIRMED', updated_at = now()
+			WHERE id = $1 AND status = 'PENDING'`
+
+	_, err := r.db.ExecContext(ctx, updateQuery, orderID)
+	if err != nil {
+		return err
+	}
+	return nil
+}

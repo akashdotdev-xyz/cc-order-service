@@ -29,6 +29,10 @@ func (f *fakeOrderRepo) Create(ctx context.Context, req domain.CreateOrderReques
 	return nil, nil
 }
 
+func (f *fakeOrderRepo) ConfirmOrder(ctx context.Context, orderID string) error {
+	return nil
+}
+
 func newTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	repo := &fakeOrderRepo{

@@ -27,6 +27,10 @@ func (f *fakeCreateOnlyRepo) Create(ctx context.Context, req domain.CreateOrderR
 	return f.order, f.err
 }
 
+func (f *fakeCreateOnlyRepo) ConfirmOrder(ctx context.Context, orderID string) error {
+	return nil
+}
+
 type fakeEventPublisher struct {
 	events []queue.OrderCreatedEvent
 }

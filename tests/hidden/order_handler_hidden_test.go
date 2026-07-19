@@ -32,6 +32,10 @@ func (c *capturingOrderRepo) Create(ctx context.Context, req domain.CreateOrderR
 	return nil, nil
 }
 
+func (c *capturingOrderRepo) ConfirmOrder(ctx context.Context, orderID string) error {
+	return nil
+}
+
 func TestHidden_SellerAndPaymentStatusFiltersReachRepository(t *testing.T) {
 	repo := &capturingOrderRepo{}
 	svc := service.NewOrderService(repo, nil)

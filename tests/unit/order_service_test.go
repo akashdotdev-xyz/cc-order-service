@@ -32,6 +32,10 @@ func (f *fakeOrderRepo) Create(ctx context.Context, req domain.CreateOrderReques
 	return nil, nil
 }
 
+func (f *fakeOrderRepo) ConfirmOrder(ctx context.Context, orderID string) error {
+	return nil
+}
+
 func TestListOrders_DefaultsPageAndLimit(t *testing.T) {
 	repo := &fakeOrderRepo{orders: []domain.Order{{ID: "1"}}}
 	svc := service.NewOrderService(repo, nil)

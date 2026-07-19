@@ -21,4 +21,11 @@ type OrderRepository interface {
 	// reserved, implementations must roll back any reservation already made
 	// in this call and return domain.ErrInsufficientInventory.
 	Create(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error)
+
+	// ConfirmOrder transitions an order from PENDING to CONFIRMED. It must
+	// be idempotent: calling it more than once for the same order (e.g.
+	// because of at-least-once event delivery) must not error or apply the
+	// transition twice. If the order is not currently PENDING (already
+	// confirmed, cancelled, etc.), this is a silent no-op.
+	ConfirmOrder(ctx context.Context, orderID string) error
 }
