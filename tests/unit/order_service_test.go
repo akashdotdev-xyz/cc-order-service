@@ -34,7 +34,7 @@ func (f *fakeOrderRepo) Create(ctx context.Context, req domain.CreateOrderReques
 
 func TestListOrders_DefaultsPageAndLimit(t *testing.T) {
 	repo := &fakeOrderRepo{orders: []domain.Order{{ID: "1"}}}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	result, err := svc.ListOrders(context.Background(), domain.OrderFilter{}, domain.Pagination{})
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestListOrders_DefaultsPageAndLimit(t *testing.T) {
 
 func TestListOrders_InvalidPage(t *testing.T) {
 	repo := &fakeOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	_, err := svc.ListOrders(context.Background(), domain.OrderFilter{}, domain.Pagination{Page: 0})
 	// Page: 0 should be treated as "unset" and defaulted, not an error.
@@ -58,7 +58,7 @@ func TestListOrders_InvalidPage(t *testing.T) {
 
 func TestListOrders_InvalidLimit(t *testing.T) {
 	repo := &fakeOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	_, err := svc.ListOrders(context.Background(), domain.OrderFilter{}, domain.Pagination{Limit: 1000})
 	assert.ErrorIs(t, err, service.ErrInvalidLimit)
@@ -69,7 +69,7 @@ func TestListOrders_InvalidLimit(t *testing.T) {
 
 func TestListOrders_InvalidStatus(t *testing.T) {
 	repo := &fakeOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	badStatus := domain.OrderStatus("NOT_A_REAL_STATUS")
 	_, err := svc.ListOrders(context.Background(), domain.OrderFilter{Status: &badStatus}, domain.Pagination{})
@@ -78,7 +78,7 @@ func TestListOrders_InvalidStatus(t *testing.T) {
 
 func TestListOrders_InvalidDateRange(t *testing.T) {
 	repo := &fakeOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	after := time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC)
 	before := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -92,7 +92,7 @@ func TestListOrders_InvalidDateRange(t *testing.T) {
 
 func TestListOrders_InvalidSortOrder(t *testing.T) {
 	repo := &fakeOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	_, err := svc.ListOrders(context.Background(), domain.OrderFilter{}, domain.Pagination{SortOrder: "sideways"})
 	assert.ErrorIs(t, err, service.ErrInvalidSortOrder)
@@ -101,7 +101,7 @@ func TestListOrders_InvalidSortOrder(t *testing.T) {
 func TestListOrders_ComputesTotalPages(t *testing.T) {
 	orders := make([]domain.Order, 25)
 	repo := &fakeOrderRepo{orders: orders}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 
 	result, err := svc.ListOrders(context.Background(), domain.OrderFilter{}, domain.Pagination{Page: 1, Limit: 10})
 	require.NoError(t, err)

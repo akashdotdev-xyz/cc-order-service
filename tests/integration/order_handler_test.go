@@ -36,7 +36,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 			{ID: "1", Status: domain.OrderStatusPending, WarehouseID: "wh-1", CreatedAt: time.Now()},
 		},
 	}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 	handler := handlers.NewOrderHandler(svc)
 	router := routes.NewRouter(handler)
 	return httptest.NewServer(router)

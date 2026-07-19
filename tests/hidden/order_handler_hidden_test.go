@@ -34,7 +34,7 @@ func (c *capturingOrderRepo) Create(ctx context.Context, req domain.CreateOrderR
 
 func TestHidden_SellerAndPaymentStatusFiltersReachRepository(t *testing.T) {
 	repo := &capturingOrderRepo{}
-	svc := service.NewOrderService(repo)
+	svc := service.NewOrderService(repo, nil)
 	handler := handlers.NewOrderHandler(svc)
 	router := routes.NewRouter(handler)
 

@@ -10,6 +10,7 @@ import (
 	"order-service/config"
 	"order-service/internal/api/handlers"
 	"order-service/internal/api/routes"
+	"order-service/internal/queue/kafka"
 	"order-service/internal/repository/postgres"
 	"order-service/internal/service"
 )
@@ -24,7 +25,9 @@ func main() {
 	defer db.Close()
 
 	orderRepo := postgres.NewOrderRepository(db)
-	orderService := service.NewOrderService(orderRepo)
+	// LogWriter stands in for a real Kafka client until one is wired up.
+	orderPublisher := kafka.NewPublisher(&kafka.LogWriter{Topic: "order.created"}, "order.created")
+	orderService := service.NewOrderService(orderRepo, orderPublisher)
 	orderHandler := handlers.NewOrderHandler(orderService)
 
 	router := routes.NewRouter(orderHandler)

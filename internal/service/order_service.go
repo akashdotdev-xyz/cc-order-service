@@ -5,8 +5,10 @@ import (
 	"errors"
 	"math"
 	"strings"
+	"time"
 
 	"order-service/internal/domain"
+	"order-service/internal/queue"
 	"order-service/internal/repository"
 )
 
@@ -31,11 +33,12 @@ const (
 )
 
 type OrderService struct {
-	repo repository.OrderRepository
+	repo      repository.OrderRepository
+	publisher queue.Publisher
 }
 
-func NewOrderService(repo repository.OrderRepository) *OrderService {
-	return &OrderService{repo: repo}
+func NewOrderService(repo repository.OrderRepository, publisher queue.Publisher) *OrderService {
+	return &OrderService{repo: repo, publisher: publisher}
 }
 
 // ListOrders validates and defaults the incoming filter/pagination, then
@@ -86,21 +89,25 @@ func (s *OrderService) ListOrders(ctx context.Context, filter domain.OrderFilter
 	}, nil
 }
 
-// CreateOrder validates the request and delegates to the repository to
-// reserve inventory and persist the order.
+// CreateOrder validates the request, delegates to the repository to
+// reserve inventory and persist the order, then publishes an OrderCreated
+// event.
 //
-// TODO(candidate): implement this method.
+// TODO(candidate): publish the OrderCreated event after a successful create.
 //
 // Requirements:
-//   - Return ErrMissingCustomerID / ErrMissingWarehouseID / ErrMissingSellerID
-//     if the corresponding field is empty.
-//   - Return ErrEmptyItems if req.Items is empty.
-//   - Return ErrInvalidItemQuantity if any item has an empty SKU or a
-//     Quantity <= 0.
-//   - On success, call s.repo.Create and return its result as-is —
-//     including propagating domain.ErrInsufficientInventory unchanged, so
-//     the handler can map it to its own status code without the service
-//     needing to know about HTTP.
+//   - Only publish once s.repo.Create has actually succeeded — never
+//     publish an event for an order that was never persisted.
+//   - Build a queue.OrderCreatedEvent from the created *domain.Order (see
+//     internal/queue/event.go for its fields) and call
+//     s.publisher.PublishOrderCreated.
+//   - A publish failure must NOT cause CreateOrder to return an error — the
+//     order is already durably committed at this point. Log the failure
+//     instead of propagating it (this gap — a lost event when publish
+//     fails after commit — is intentional for now and gets closed later by
+//     an outbox pattern).
+//   - s.publisher may be nil (some existing callers don't care about
+//     events) — guard against that before calling it.
 func (s *OrderService) CreateOrder(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error) {
 
 	validationErr := validateCreateOrderRequest(req)
@@ -108,7 +115,24 @@ func (s *OrderService) CreateOrder(ctx context.Context, req domain.CreateOrderRe
 		return nil, validationErr
 	}
 
-	return s.repo.Create(ctx, req)
+	order, err := s.repo.Create(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.publisher != nil {
+		event := queue.OrderCreatedEvent{
+			OrderID:     order.ID,
+			CustomerID:  order.CustomerID,
+			WarehouseID: order.WarehouseID,
+			SellerID:    order.SellerID,
+			TotalAmount: order.TotalAmount,
+			Items:       order.Items,
+			OccurredAt:  time.Now(),
+		}
+		s.publisher.PublishOrderCreated(ctx, event)
+	}
+	return order, nil
 }
 
 func isValidStatus(s domain.OrderStatus) bool {
