@@ -28,6 +28,10 @@ func (c *capturingOrderRepo) List(ctx context.Context, filter domain.OrderFilter
 	return nil, 0, nil
 }
 
+func (c *capturingOrderRepo) Create(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error) {
+	return nil, nil
+}
+
 func TestHidden_SellerAndPaymentStatusFiltersReachRepository(t *testing.T) {
 	repo := &capturingOrderRepo{}
 	svc := service.NewOrderService(repo)

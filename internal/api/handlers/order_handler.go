@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -96,6 +97,44 @@ func (h *OrderHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, result)
 }
 
+// CreateOrder handles POST /orders.
+//
+// TODO(candidate): implement this handler.
+//
+// Requirements:
+//   - Decode the JSON request body into a domain.CreateOrderRequest. On a
+//     malformed body, respond 400.
+//   - Call h.svc.CreateOrder.
+//   - On a validation error (isValidationErr), respond 400 with the error
+//     message.
+//   - On errors.Is(err, domain.ErrInsufficientInventory), respond 409.
+//   - On any other error, respond 500.
+//   - On success, respond 201 Created with the created *domain.Order as
+//     JSON.
+func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+
+	var req domain.CreateOrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	order, err := h.svc.CreateOrder(r.Context(), req)
+	if err != nil {
+		if isValidationErr(err) {
+			httputil.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		} else if errors.Is(err, domain.ErrInsufficientInventory) {
+			httputil.WriteError(w, http.StatusConflict, err.Error())
+			return
+		}
+
+		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.WriteJSON(w, http.StatusCreated, order)
+}
+
 // optionalString returns nil when the query param is absent, otherwise a
 // pointer to its raw value.
 func optionalString(q url.Values, key string) *string {
@@ -136,5 +175,10 @@ func isValidationErr(err error) bool {
 		errors.Is(err, service.ErrInvalidLimit) ||
 		errors.Is(err, service.ErrInvalidDateRange) ||
 		errors.Is(err, service.ErrInvalidOrderStatus) ||
-		errors.Is(err, service.ErrInvalidSortOrder)
+		errors.Is(err, service.ErrInvalidSortOrder) ||
+		errors.Is(err, service.ErrMissingCustomerID) ||
+		errors.Is(err, service.ErrMissingWarehouseID) ||
+		errors.Is(err, service.ErrMissingSellerID) ||
+		errors.Is(err, service.ErrEmptyItems) ||
+		errors.Is(err, service.ErrInvalidItemQuantity)
 }

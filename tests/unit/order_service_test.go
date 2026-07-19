@@ -28,6 +28,10 @@ func (f *fakeOrderRepo) List(ctx context.Context, filter domain.OrderFilter, pag
 	return f.orders, len(f.orders), nil
 }
 
+func (f *fakeOrderRepo) Create(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error) {
+	return nil, nil
+}
+
 func TestListOrders_DefaultsPageAndLimit(t *testing.T) {
 	repo := &fakeOrderRepo{orders: []domain.Order{{ID: "1"}}}
 	svc := service.NewOrderService(repo)

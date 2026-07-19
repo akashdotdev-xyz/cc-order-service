@@ -16,6 +16,12 @@ var (
 	ErrInvalidDateRange   = errors.New("createdAfter must be before createdBefore")
 	ErrInvalidOrderStatus = errors.New("invalid order status")
 	ErrInvalidSortOrder   = errors.New("sortOrder must be 'asc' or 'desc'")
+
+	ErrMissingCustomerID   = errors.New("customerId is required")
+	ErrMissingWarehouseID  = errors.New("warehouseId is required")
+	ErrMissingSellerID     = errors.New("sellerId is required")
+	ErrEmptyItems          = errors.New("items must not be empty")
+	ErrInvalidItemQuantity = errors.New("each item must have a sku and a quantity > 0")
 )
 
 const (
@@ -80,6 +86,31 @@ func (s *OrderService) ListOrders(ctx context.Context, filter domain.OrderFilter
 	}, nil
 }
 
+// CreateOrder validates the request and delegates to the repository to
+// reserve inventory and persist the order.
+//
+// TODO(candidate): implement this method.
+//
+// Requirements:
+//   - Return ErrMissingCustomerID / ErrMissingWarehouseID / ErrMissingSellerID
+//     if the corresponding field is empty.
+//   - Return ErrEmptyItems if req.Items is empty.
+//   - Return ErrInvalidItemQuantity if any item has an empty SKU or a
+//     Quantity <= 0.
+//   - On success, call s.repo.Create and return its result as-is —
+//     including propagating domain.ErrInsufficientInventory unchanged, so
+//     the handler can map it to its own status code without the service
+//     needing to know about HTTP.
+func (s *OrderService) CreateOrder(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error) {
+
+	validationErr := validateCreateOrderRequest(req)
+	if validationErr != nil {
+		return nil, validationErr
+	}
+
+	return s.repo.Create(ctx, req)
+}
+
 func isValidStatus(s domain.OrderStatus) bool {
 	switch s {
 	case domain.OrderStatusPending, domain.OrderStatusConfirmed, domain.OrderStatusShipped,
@@ -88,4 +119,29 @@ func isValidStatus(s domain.OrderStatus) bool {
 	default:
 		return false
 	}
+}
+
+func validateCreateOrderRequest(req domain.CreateOrderRequest) error {
+	if req.CustomerID == "" {
+		return ErrMissingCustomerID
+	}
+
+	if req.SellerID == "" {
+		return ErrMissingSellerID
+	}
+
+	if req.WarehouseID == "" {
+		return ErrMissingWarehouseID
+	}
+
+	if len(req.Items) == 0 {
+		return ErrEmptyItems
+	}
+
+	for _, item := range req.Items {
+		if item.SKU == "" || item.Quantity <= 0 {
+			return ErrInvalidItemQuantity
+		}
+	}
+	return nil
 }

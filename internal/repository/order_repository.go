@@ -15,4 +15,10 @@ type OrderRepository interface {
 	// the total count of matching rows (ignoring pagination) for building
 	// pagination metadata.
 	List(ctx context.Context, filter domain.OrderFilter, pagination domain.Pagination) ([]domain.Order, int, error)
+
+	// Create reserves inventory for every item in the request and persists
+	// the order and its items atomically. If any item cannot be fully
+	// reserved, implementations must roll back any reservation already made
+	// in this call and return domain.ErrInsufficientInventory.
+	Create(ctx context.Context, req domain.CreateOrderRequest) (*domain.Order, error)
 }

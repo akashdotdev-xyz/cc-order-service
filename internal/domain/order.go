@@ -46,6 +46,7 @@ type Order struct {
 	PaymentStatus string      `json:"paymentStatus"`
 	TotalAmount   int64       `json:"totalAmount"` // stored in minor units (cents)
 	Version       int         `json:"version"`     // used for optimistic locking in later problems
+	Items         []OrderItem `json:"items,omitempty"`
 	CreatedAt     time.Time   `json:"createdAt"`
 	UpdatedAt     time.Time   `json:"updatedAt"`
 }

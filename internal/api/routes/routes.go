@@ -12,6 +12,7 @@ func NewRouter(orderHandler *handlers.OrderHandler) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /orders", orderHandler.ListOrders)
+	mux.HandleFunc("POST /orders", orderHandler.CreateOrder)
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
